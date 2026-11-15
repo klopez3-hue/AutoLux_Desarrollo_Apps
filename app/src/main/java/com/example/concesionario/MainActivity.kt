@@ -30,6 +30,20 @@ import androidx.navigation.compose.rememberNavController
 import com.example.concesionario.ui.theme.ConcesionarioTheme
 import java.util.Locale
 import kotlin.math.pow
+import com.example.concesionario.data.local.AppDatabase
+import com.example.concesionario.viewmodel.AutoLuxViewModelFactory
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.concesionario.viewmodel.FavoriteViewModel
+import com.example.concesionario.viewmodel.TestDriveViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.concesionario.data.local.TestDriveEntity
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.SelectableDates
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 
 // ============================================================
 // MODELO Y RUTAS
@@ -59,24 +73,41 @@ object Routes {
 // ACTIVIDAD
 // ============================================================
 
+
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val database = AppDatabase.getDatabase(applicationContext)
+
+        val factory = AutoLuxViewModelFactory(database)
+
         setContent {
             ConcesionarioTheme {
-                AutoLuxApp()
+                AutoLuxApp(factory = factory)
             }
         }
     }
 }
+
 
 // ============================================================
 // APLICACIÓN PRINCIPAL
 // ============================================================
 
 @Composable
-fun AutoLuxApp() {
+fun AutoLuxApp(factory: AutoLuxViewModelFactory) {
     val navController = rememberNavController()
+    val favoriteViewModel: FavoriteViewModel = viewModel(factory = factory)
+
+    val testDriveViewModel: TestDriveViewModel = viewModel(factory = factory)
+    val favoriteEntities by favoriteViewModel.favorites.collectAsStateWithLifecycle()
+    val testDriveRequests by testDriveViewModel.testDrives.collectAsStateWithLifecycle()
+
+    val favorites = remember(favoriteEntities) {
+        favoriteEntities.map { it.vehicleId }.toSet()
+    }
 
     val vehicles = remember {
         listOf(
@@ -113,7 +144,6 @@ fun AutoLuxApp() {
         )
     }
 
-    var favorites by remember { mutableStateOf(setOf<Int>()) }
     var catalogCategory by remember { mutableStateOf("Todos") }
     var selectedVehicleId by remember { mutableIntStateOf(1) }
     val selectedVehicle = vehicles.firstOrNull { it.id == selectedVehicleId } ?: vehicles.first()
@@ -150,7 +180,11 @@ fun AutoLuxApp() {
                         navigateToTab(navController, Routes.CATALOG)
                     },
                     onFavorite = { id ->
-                        favorites = if (id in favorites) favorites - id else favorites + id
+                        if (id in favorites) {
+                            favoriteViewModel.removeFavorite(id)
+                        } else {
+                            favoriteViewModel.addFavorite(id)
+                        }
                     },
                     onSelectVehicle = { id ->
                         selectedVehicleId = id
@@ -169,7 +203,11 @@ fun AutoLuxApp() {
                     favorites = favorites,
                     initialCategory = catalogCategory,
                     onFavorite = { id ->
-                        favorites = if (id in favorites) favorites - id else favorites + id
+                        if (id in favorites) {
+                            favoriteViewModel.removeFavorite(id)
+                        } else {
+                            favoriteViewModel.addFavorite(id)
+                        }
                     },
                     onAppointment = { id ->
                         selectedVehicleId = id
@@ -186,7 +224,9 @@ fun AutoLuxApp() {
                 FavoritesScreen(
                     vehicles = vehicles.filter { it.id in favorites },
                     favorites = favorites,
-                    onFavorite = { id -> favorites = favorites - id },
+                    onFavorite = { id ->
+                        favoriteViewModel.removeFavorite(id)
+                    },
                     onAppointment = { id ->
                         selectedVehicleId = id
                         navController.navigate(Routes.APPOINTMENT)
@@ -204,6 +244,8 @@ fun AutoLuxApp() {
 
             composable(Routes.PROFILE) {
                 ProfileScreen(
+                    testDriveRequests = testDriveRequests,
+                    vehicles = vehicles,
                     onAppointment = { navController.navigate(Routes.APPOINTMENT) },
                     onFinance = { navController.navigate(Routes.FINANCE) }
                 )
@@ -212,6 +254,8 @@ fun AutoLuxApp() {
             composable(Routes.APPOINTMENT) {
                 AppointmentScreen(
                     vehicle = selectedVehicle,
+                    testDriveViewModel = testDriveViewModel,
+                    testDriveRequests = testDriveRequests,
                     onBack = { navController.popBackStack() }
                 )
             }
@@ -829,6 +873,8 @@ fun FavoritesScreen(
 
 @Composable
 fun ProfileScreen(
+    testDriveRequests: List<TestDriveEntity>,
+    vehicles: List<Vehicle>,
     onAppointment: () -> Unit,
     onFinance: () -> Unit
 ) {
@@ -838,8 +884,64 @@ fun ProfileScreen(
         Text("Bienvenido a AutoLux", style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
-        Text("Tu experiencia premium comienza aquí.",
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f))
+
+        Text(
+            "Tu experiencia premium comienza aquí.",
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+        )
+
+        Spacer(Modifier.height(20.dp))
+
+        Text(
+            "Mis solicitudes de prueba de manejo",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        if (testDriveRequests.isEmpty()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp)
+            ) {
+                Column(Modifier.padding(20.dp)) {
+                    Text(
+                        "No tienes solicitudes registradas todavía.",
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+            }
+        } else {
+            testDriveRequests.forEach { request ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp)
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text(
+                            "Solicitud de prueba de manejo",
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text("Cliente: ${request.customerName}")
+                        Text("Teléfono: ${request.customerPhone}")
+                        Text("Correo: ${request.customerEmail}")
+                        val requestedVehicle = vehicles.firstOrNull { it.id == request.vehicleId }
+
+                        Text(
+                            "Vehículo: ${requestedVehicle?.brand ?: "Desconocido"} ${requestedVehicle?.model ?: ""} (${requestedVehicle?.year ?: ""})",
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text("Fecha: ${request.appointmentDate}")
+                        Text("Hora: ${request.appointmentTime}")
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+            }
+        }
+
         Spacer(Modifier.height(24.dp))
 
         Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) {
@@ -877,17 +979,280 @@ fun ProfileScreen(
     }
 }
 
+
+fun isColombianHoliday(year: Int, month: Int, day: Int): Boolean {
+
+    val holidays = mutableSetOf<String>()
+
+    fun dateKey(calendar: java.util.Calendar): String {
+        return String.format(
+            Locale.US,
+            "%04d-%02d-%02d",
+            calendar.get(java.util.Calendar.YEAR),
+            calendar.get(java.util.Calendar.MONTH) + 1,
+            calendar.get(java.util.Calendar.DAY_OF_MONTH)
+        )
+    }
+
+    fun createDate(month: Int, day: Int): java.util.Calendar {
+        return java.util.Calendar.getInstance(
+            java.util.TimeZone.getTimeZone("UTC")
+        ).apply {
+            clear()
+            set(year, month, day)
+        }
+    }
+
+    fun addHoliday(calendar: java.util.Calendar) {
+        holidays.add(dateKey(calendar))
+    }
+
+    // Festivos que se trasladan al lunes (Ley Emiliani)
+    fun addMondayHoliday(month: Int, day: Int) {
+        val calendar = createDate(month, day)
+
+        val daysUntilMonday =
+            (2 - calendar.get(java.util.Calendar.DAY_OF_WEEK) + 7) % 7
+
+        calendar.add(java.util.Calendar.DAY_OF_MONTH, daysUntilMonday)
+        addHoliday(calendar)
+    }
+
+    // Festivos de fecha fija
+    val fixedHolidays = listOf(
+        0 to 1,   // Año Nuevo
+        4 to 1,   // Día del Trabajo
+        6 to 20,  // Independencia de Colombia
+        7 to 7,   // Batalla de Boyacá
+        11 to 8,  // Inmaculada Concepción
+        11 to 25  // Navidad
+    )
+
+    fixedHolidays.forEach { (month, day) ->
+        addHoliday(createDate(month, day))
+    }
+
+    // Festivos trasladados al lunes
+    val mondayHolidays = listOf(
+        0 to 6,   // Reyes Magos
+        2 to 19,  // San José
+        5 to 29,  // San Pedro y San Pablo
+        7 to 15,  // Asunción de la Virgen
+        9 to 12,  // Día de la Raza
+        10 to 1,  // Todos los Santos
+        10 to 11  // Independencia de Cartagena
+    )
+
+    mondayHolidays.forEach { (month, day) ->
+        addMondayHoliday(month, day)
+    }
+
+    // Cálculo del domingo de Pascua (algoritmo gregoriano)
+    val a = year % 19
+    val b = year / 100
+    val c = year % 100
+    val d = b / 4
+    val e = b % 4
+    val f = (b + 8) / 25
+    val g = (b - f + 1) / 3
+    val h = (19 * a + b - d - g + 15) % 30
+    val i = c / 4
+    val k = c % 4
+    val l = (32 + 2 * e + 2 * i - h - k) % 7
+    val m = (a + 11 * h + 22 * l) / 451
+
+    val easterMonth = (h + l - 7 * m + 114) / 31
+    val easterDay = ((h + l - 7 * m + 114) % 31) + 1
+
+    val easter = createDate(easterMonth - 1, easterDay)
+
+    // Jueves y Viernes Santo
+    val holyThursday = easter.clone() as java.util.Calendar
+    holyThursday.add(java.util.Calendar.DAY_OF_MONTH, -3)
+    addHoliday(holyThursday)
+
+    val goodFriday = easter.clone() as java.util.Calendar
+    goodFriday.add(java.util.Calendar.DAY_OF_MONTH, -2)
+    addHoliday(goodFriday)
+
+    // Ascensión, Corpus Christi y Sagrado Corazón
+    listOf(39, 60, 68).forEach { days ->
+        val calendar = easter.clone() as java.util.Calendar
+        calendar.add(java.util.Calendar.DAY_OF_MONTH, days)
+
+        val daysUntilMonday =
+            (2 - calendar.get(java.util.Calendar.DAY_OF_WEEK) + 7) % 7
+
+        calendar.add(java.util.Calendar.DAY_OF_MONTH, daysUntilMonday)
+        addHoliday(calendar)
+    }
+
+    // Comprobar la fecha consultada
+    val selectedDate = createDate(month, day)
+
+    return dateKey(selectedDate) in holidays
+}
+
 // ============================================================
 // AGENDAR PRUEBA DE MANEJO
 // ============================================================
 
 @Composable
-fun AppointmentScreen(vehicle: Vehicle, onBack: () -> Unit) {
+fun AppointmentScreen(vehicle: Vehicle, testDriveViewModel: TestDriveViewModel, testDriveRequests: List<TestDriveEntity>, onBack: () -> Unit) {
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+
     var date by remember { mutableStateOf("") }
     var time by remember { mutableStateOf("") }
+
+    var showEmailError by remember {
+        mutableStateOf(false)
+    }
+
+    val isEmailValid = android.util.Patterns.EMAIL_ADDRESS
+        .matcher(email)
+        .matches()
+
+    var showValidationDialog by remember {
+        mutableStateOf(false)
+    }
+
+    var showFieldErrors by remember {
+        mutableStateOf(false)
+    }
+
+    var selectedDate by remember { mutableStateOf<Long?>(null) }
+    var selectedTime by remember { mutableStateOf("") }
+    val availableTimes = remember(selectedDate) {
+        val calendar = java.util.Calendar.getInstance(
+            java.util.TimeZone.getTimeZone("UTC")
+        ).apply {
+            timeInMillis = selectedDate ?: System.currentTimeMillis()
+        }
+
+        val dayOfWeek = calendar.get(java.util.Calendar.DAY_OF_WEEK)
+
+        val startHour = 8
+        val endHour = if (
+            dayOfWeek == java.util.Calendar.SATURDAY
+        ) 12 else 17
+
+        buildList {
+            for (hour in startHour until endHour) {
+                add(String.format(Locale.getDefault(), "%02d:00", hour))
+                add(String.format(Locale.getDefault(), "%02d:30", hour))
+            }
+        }
+    }
+
+    val selectedDateString = selectedDate?.let {
+        java.text.SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).apply {
+            timeZone = java.util.TimeZone.getTimeZone("UTC")
+        }.format(java.util.Date(it))
+    } ?: ""
+
+    val reservedTimes = testDriveRequests
+        .filter { it.appointmentDate == selectedDateString }
+        .map { it.appointmentTime }
+        .toSet()
+
     var confirmation by remember { mutableStateOf(false) }
+
+    val datePickerState = rememberDatePickerState(
+        selectableDates = object : SelectableDates {
+
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                val utcTimeZone = java.util.TimeZone.getTimeZone("UTC")
+
+                val calendar = java.util.Calendar.getInstance(utcTimeZone)
+                calendar.timeInMillis = utcTimeMillis
+
+                val selectedDay = calendar.get(
+                    java.util.Calendar.DAY_OF_WEEK
+                )
+
+                val localToday = java.util.Calendar.getInstance()
+
+                val todayUtc = java.util.Calendar.getInstance(utcTimeZone).apply {
+                    set(
+                        java.util.Calendar.YEAR,
+                        localToday.get(java.util.Calendar.YEAR)
+                    )
+                    set(
+                        java.util.Calendar.MONTH,
+                        localToday.get(java.util.Calendar.MONTH)
+                    )
+                    set(
+                        java.util.Calendar.DAY_OF_MONTH,
+                        localToday.get(java.util.Calendar.DAY_OF_MONTH)
+                    )
+
+                    set(java.util.Calendar.HOUR_OF_DAY, 0)
+                    set(java.util.Calendar.MINUTE, 0)
+                    set(java.util.Calendar.SECOND, 0)
+                    set(java.util.Calendar.MILLISECOND, 0)
+                }
+
+                val selectedYear = calendar.get(java.util.Calendar.YEAR)
+                val selectedMonth = calendar.get(java.util.Calendar.MONTH)
+                val selectedDayOfMonth = calendar.get(java.util.Calendar.DAY_OF_MONTH)
+
+                return utcTimeMillis >= todayUtc.timeInMillis &&
+                        selectedDay != java.util.Calendar.SUNDAY &&
+                        !isColombianHoliday(
+                            selectedYear,
+                            selectedMonth,
+                            selectedDayOfMonth
+                        )
+            }
+        }
+    )
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = {
+                showDatePicker = false
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        selectedDate = datePickerState.selectedDateMillis
+
+                        date = selectedDate?.let {
+                            java.text.SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).apply {
+                                timeZone = java.util.TimeZone.getTimeZone("UTC")
+                            }.format(java.util.Date(it))
+                        } ?: ""
+
+                        selectedTime = ""
+                        time = ""
+                        showDatePicker = false
+                        confirmation = false
+                    }
+                ) {
+                    Text("Aceptar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDatePicker = false
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        ) {
+            DatePicker(
+                state = datePickerState,
+                title = {
+                    Text("Selecciona la fecha de tu prueba")
+                }
+            )
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)
@@ -905,40 +1270,191 @@ fun AppointmentScreen(vehicle: Vehicle, onBack: () -> Unit) {
 
         OutlinedTextField(
             value = name,
-            onValueChange = { name = it; confirmation = false },
+            onValueChange = {
+                name = it
+                confirmation = false
+            },
             label = { Text("Nombre completo") },
+            trailingIcon = {
+                if (showFieldErrors && name.isBlank()) {
+                    Text("⚠️")
+                }
+            },
+            isError = showFieldErrors && name.isBlank(),
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
+
         Spacer(Modifier.height(12.dp))
         OutlinedTextField(
             value = phone,
-            onValueChange = { phone = it; confirmation = false },
+            onValueChange = { newValue ->
+                if (newValue.all { it.isDigit() }) {
+                    phone = newValue
+                    confirmation = false
+                }
+            },
             label = { Text("Teléfono de contacto") },
+            trailingIcon = {
+                if (showFieldErrors && phone.isBlank()) {
+                    Text("⚠️")
+                }
+            },
+            isError = showFieldErrors && phone.isBlank(),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number
+            ),
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
         Spacer(Modifier.height(12.dp))
+
         OutlinedTextField(
-            value = date,
-            onValueChange = { date = it; confirmation = false },
-            label = { Text("Fecha (DD/MM/AAAA)") },
+            value = email,
+            onValueChange = {
+                email = it
+                confirmation = false
+            },
+            label = { Text("Correo electrónico") },
+            trailingIcon = {
+                if (
+                    showFieldErrors &&
+                    (email.isBlank() || !isEmailValid)
+                ) {
+                    Text("⚠️")
+                }
+            },
+            isError = showFieldErrors &&
+                    (email.isBlank() || !isEmailValid),
             modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+        if (showFieldErrors && email.isNotBlank() && !isEmailValid) {
+            Text(
+                "Correo inválido. Ejemplo: usuario@gmail.com ó usuario@hotmail.com",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+        Spacer(Modifier.height(12.dp))
+
+        OutlinedTextField(
+            value = selectedDate?.let {
+                java.text.SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                    .format(java.util.Date(it))
+            } ?: "",
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Fecha de la prueba") },
+            placeholder = { Text("Selecciona una fecha") },
+            trailingIcon = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (showFieldErrors && date.isBlank()) {
+                        Text("⚠️")
+                    }
+
+                    TextButton(
+                        onClick = { showDatePicker = true }
+                    ) {
+                        Text("📅")
+                    }
+                }
+            },
+            isError = showFieldErrors && date.isBlank(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { showDatePicker = true },
             singleLine = true
         )
         Spacer(Modifier.height(12.dp))
-        OutlinedTextField(
-            value = time,
-            onValueChange = { time = it; confirmation = false },
-            label = { Text("Hora preferida") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+
+        Text(
+            "Selecciona un horario",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
         )
+
+        if (showFieldErrors && time.isBlank()) {
+            Text(
+                "⚠️ Debes seleccionar un horario",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        if (selectedDate == null) {
+            Text("Primero selecciona una fecha.")
+        } else {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                availableTimes.chunked(2).forEach { rowTimes ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        rowTimes.forEach { slot ->
+                            Button(
+                                onClick = {
+                                    selectedTime = slot
+                                    time = slot
+                                    confirmation = false
+                                },
+                                enabled = slot !in reservedTimes,
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = when {
+                                        slot in reservedTimes -> MaterialTheme.colorScheme.errorContainer
+                                        selectedTime == slot -> MaterialTheme.colorScheme.primary
+                                        else -> MaterialTheme.colorScheme.surfaceVariant
+                                    }
+                                )
+                            ) {
+                                Text(if (slot in reservedTimes) "OCUPADO · $slot" else slot
+                                )
+                            }
+                        }
+
+                        if (rowTimes.size == 1) {
+                            Spacer(Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+        }
+
         Spacer(Modifier.height(20.dp))
+
         Button(
             onClick = {
-                confirmation = name.isNotBlank() && phone.isNotBlank() &&
-                        date.isNotBlank() && time.isNotBlank()
+                if (
+                    name.isNotBlank() &&
+                    phone.isNotBlank() &&
+                    isEmailValid &&
+                    date.isNotBlank() &&
+                    time.isNotBlank()
+                ) {
+                    testDriveViewModel.addTestDrive(
+                        TestDriveEntity(
+                            vehicleId = vehicle.id,
+                            customerName = name,
+                            customerPhone = phone,
+                            customerEmail = email,
+                            appointmentDate = date,
+                            appointmentTime = time
+                        )
+                    )
+                    showFieldErrors = false
+                    confirmation = true
+                } else {
+                    confirmation = false
+                    showValidationDialog = true
+                    showFieldErrors = true
+                }
             },
             modifier = Modifier.fillMaxWidth().height(52.dp)
         ) {
@@ -957,6 +1473,31 @@ fun AppointmentScreen(vehicle: Vehicle, onBack: () -> Unit) {
                 }
             }
         }
+    }
+
+    if (showValidationDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showValidationDialog = false
+            },
+            title = {
+                Text("Campos incompletos")
+            },
+            text = {
+                Text(
+                    "Por favor, rellene todos los campos de la solicitud de prueba de manejo."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showValidationDialog = false
+                    }
+                ) {
+                    Text("Aceptar")
+                }
+            }
+        )
     }
 }
 
