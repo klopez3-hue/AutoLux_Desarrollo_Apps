@@ -54,6 +54,12 @@ import androidx.compose.runtime.key
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.text.style.TextAlign
 
 
 // ============================================================
@@ -78,6 +84,8 @@ object Routes {
     const val PROFILE = "profile"
     const val APPOINTMENT = "appointment"
     const val FINANCE = "finance"
+
+    const val MY_TEST_DRIVES = "my_test_drives"
 }
 
 // ============================================================
@@ -258,9 +266,22 @@ fun AutoLuxApp(factory: AutoLuxViewModelFactory) {
                     testDriveRequests = testDriveRequests,
                     vehicles = vehicles,
                     testDriveViewModel = testDriveViewModel,
+                    favorites = favorites,
+                    onMyTestDrives = { navController.navigate(Routes.MY_TEST_DRIVES) },
+                    onFavorites = { navController.navigate(Routes.FAVORITES) },
                     onAppointment = { navController.navigate(Routes.APPOINTMENT) },
                     onFinance = { navController.navigate(Routes.FINANCE) }
+                )
+            }
 
+            composable(Routes.MY_TEST_DRIVES) {
+                MyTestDrivesScreen(
+                    testDriveRequests = testDriveRequests,
+                    vehicles = vehicles,
+                    testDriveViewModel = testDriveViewModel,
+                    onBack = {
+                        navController.popBackStack()
+                    }
                 )
             }
 
@@ -389,13 +410,13 @@ fun HomeScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(390.dp)
+                .height(480.dp)
         ) {
             Image(
                 painter = painterResource(R.drawable.audi_r8),
                 contentDescription = "Deportivo destacado de AutoLux",
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Fit
             )
             Box(
                 modifier = Modifier
@@ -477,7 +498,7 @@ fun HomeScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        vehicles.firstOrNull()?.let { vehicle ->
+        vehicles.firstOrNull{ it.id == 9 }?.let { vehicle ->
             FeaturedVehicleCard(
                 vehicle = vehicle,
                 isFavorite = vehicle.id in favorites,
@@ -553,6 +574,7 @@ fun BrandFeature(title: String, subtitle: String, modifier: Modifier = Modifier)
     }
 }
 
+
 @Composable
 fun FeaturedVehicleCard(
     vehicle: Vehicle,
@@ -565,80 +587,142 @@ fun FeaturedVehicleCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF17181D)
+        )
     ) {
         Column {
-            Box {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(430.dp)
+                    .clickable(onClick = onDetails)
+            ) {
                 Image(
                     painter = painterResource(vehicle.image),
                     contentDescription = "${vehicle.brand} ${vehicle.model}",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(215.dp)
-                        .clickable(onClick = onDetails),
+                    modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
+
+                // Degradado oscuro inferior
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color(0x33000000),
+                                    Color(0xEE000000)
+                                ),
+                                startY = 300f
+                            )
+                        )
+                )
+
+                // Etiqueta DESTACADO
                 Surface(
-                    modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(12.dp),
                     color = MaterialTheme.colorScheme.primary,
                     shape = RoundedCornerShape(50)
                 ) {
                     Text(
                         "DESTACADO",
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                        modifier = Modifier.padding(
+                            horizontal = 12.dp,
+                            vertical = 7.dp
+                        ),
                         color = MaterialTheme.colorScheme.onPrimary,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold
                     )
                 }
+
+                // Favoritos
                 TextButton(
                     onClick = onFavorite,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(4.dp)
                 ) {
                     Text(
                         if (isFavorite) "♥" else "♡",
                         fontSize = 30.sp,
-                        color = if (isFavorite) MaterialTheme.colorScheme.primary else Color.White
+                        color = if (isFavorite) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            Color.White
+                        }
+                    )
+                }
+
+                // Información superpuesta
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(20.dp)
+                ) {
+                    Text(
+                        vehicle.brand.uppercase(),
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        vehicle.model,
+                        color = Color.White,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(Modifier.height(5.dp))
+
+                    Text(
+                        "${vehicle.year}  •  ${vehicle.category}",
+                        color = Color.White.copy(alpha = 0.85f),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    Spacer(Modifier.height(10.dp))
+
+                    Text(
+                        formatPrice(vehicle.price),
+                        color = Color.White,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
-            Column(Modifier.padding(16.dp)) {
-                Text(
-                    vehicle.brand.uppercase(),
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(vehicle.model, style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    "${vehicle.year}  •  ${vehicle.category}",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
-                Spacer(Modifier.height(10.dp))
-                Text(vehicle.description, style = MaterialTheme.typography.bodyMedium)
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    formatPrice(vehicle.price),
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(Modifier.height(14.dp))
-                Button(onClick = onFinance, modifier = Modifier.fillMaxWidth()) {
+
+            // Botones de acción
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Button(
+                    onClick = onFinance,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text("SIMULAR FINANCIACIÓN")
                 }
+
                 Spacer(Modifier.height(6.dp))
-                OutlinedButton(onClick = onDetails, modifier = Modifier.fillMaxWidth()) {
+
+                OutlinedButton(
+                    onClick = onDetails,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text("AGENDAR PRUEBA DE MANEJO")
                 }
             }
         }
     }
 }
+
 
 @Composable
 fun CategoryImageCard(
@@ -648,7 +732,7 @@ fun CategoryImageCard(
     onClick: () -> Unit
 ) {
     Card(
-        modifier = modifier.height(170.dp).clickable(onClick = onClick),
+        modifier = modifier.height(290.dp).clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp)
     ) {
         Box(Modifier.fillMaxSize()) {
@@ -763,6 +847,7 @@ fun CatalogScreen(
 // TARJETA REUTILIZABLE DE VEHÍCULO
 // ============================================================
 
+
 @Composable
 fun VehicleCard(
     vehicle: Vehicle,
@@ -773,57 +858,147 @@ fun VehicleCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF17181D)
+        )
     ) {
-        Column {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(430.dp)
+        ) {
+
+            // Fotografía del vehículo
             Image(
                 painter = painterResource(vehicle.image),
                 contentDescription = "${vehicle.brand} ${vehicle.model}",
-                modifier = Modifier.fillMaxWidth().height(190.dp),
+                modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
-            Column(Modifier.padding(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(vehicle.brand.uppercase(),
-                            color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.labelMedium)
-                        Text(vehicle.model, style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold)
-                    }
-                    TextButton(onClick = onFavorite) {
-                        Text(
-                            if (isFavorite) "♥" else "♡",
-                            fontSize = 28.sp,
-                            color = if (isFavorite) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurface
+
+            // Degradado para mejorar la lectura
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.05f),
+                                Color.Black.copy(alpha = 0.15f),
+                                Color.Black.copy(alpha = 0.65f),
+                                Color.Black.copy(alpha = 0.96f)
+                            ),
+                            startY = 0f
                         )
+                    )
+            )
+
+            // Botón de favoritos
+            TextButton(
+                onClick = onFavorite,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(10.dp)
+            ) {
+                Text(
+                    text = if (isFavorite) "♥" else "♡",
+                    fontSize = 32.sp,
+                    color = if (isFavorite) {
+                        Color(0xFFE32636)
+                    } else {
+                        Color.White
                     }
+                )
+            }
+
+            // Información en la parte inferior izquierda
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .padding(18.dp)
+            ) {
+
+                Text(
+                    vehicle.brand.uppercase(),
+                    color = Color(0xFFE94A50),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+
+                Spacer(Modifier.height(3.dp))
+
+                Text(
+                    vehicle.model,
+                    color = Color.White,
+                    fontSize = 27.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+
+                Spacer(Modifier.height(5.dp))
+
+                Text(
+                    "${vehicle.year}  •  ${vehicle.category}",
+                    color = Color.White.copy(alpha = 0.85f),
+                    fontSize = 14.sp
+                )
+
+                Spacer(Modifier.height(10.dp))
+
+                Text(
+                    formatPrice(vehicle.price),
+                    color = Color(0xFFE94A50),
+                    fontSize = 23.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+
+                Spacer(Modifier.height(10.dp))
+
+                Text(
+                    vehicle.description,
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    lineHeight = 19.sp
+                )
+
+                Spacer(Modifier.height(14.dp))
+
+                Button(
+                    onClick = onFinance,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(30.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE32636)
+                    )
+                ) {
+                    Text(
+                        "SIMULAR FINANCIACIÓN",
+                        fontWeight = FontWeight.Bold
+                    )
                 }
-                Text("${vehicle.year} • ${vehicle.category}",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
-                Spacer(Modifier.height(8.dp))
-                Text(vehicle.description, style = MaterialTheme.typography.bodyMedium)
-                Spacer(Modifier.height(12.dp))
-                Text(formatPrice(vehicle.price),
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(12.dp))
-                Button(onClick = onFinance, modifier = Modifier.fillMaxWidth()) {
-                    Text("SIMULAR FINANCIACIÓN")
-                }
-                OutlinedButton(onClick = onAppointment, modifier = Modifier.fillMaxWidth()) {
-                    Text("AGENDAR PRUEBA DE MANEJO")
+
+                OutlinedButton(
+                    onClick = onAppointment,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(30.dp),
+                    border = BorderStroke(
+                        1.dp,
+                        Color.White.copy(alpha = 0.65f)
+                    )
+                ) {
+                    Text(
+                        "AGENDAR PRUEBA DE MANEJO",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
     }
 }
+
 
 // ============================================================
 // FAVORITOS
@@ -889,8 +1064,677 @@ fun ProfileScreen(
     testDriveRequests: List<TestDriveEntity>,
     vehicles: List<Vehicle>,
     testDriveViewModel: TestDriveViewModel,
+    favorites: Set<Int>,
+    onFavorites: () -> Unit,
+    onMyTestDrives: () -> Unit,
     onAppointment: () -> Unit,
     onFinance: () -> Unit
+) {
+    val nextTestDrive = remember(testDriveRequests) {
+        val dateFormat = java.text.SimpleDateFormat(
+            "dd/MM/yyyy HH:mm",
+            java.util.Locale.getDefault()
+        ).apply {
+            timeZone = java.util.TimeZone.getTimeZone("UTC")
+            isLenient = false
+        }
+
+        val currentDate = java.util.Date()
+
+        testDriveRequests
+            .mapNotNull { request ->
+                try {
+                    val appointmentDateTime = dateFormat.parse(
+                        "${request.appointmentDate} ${request.appointmentTime}"
+                    )
+
+                    if (appointmentDateTime != null &&
+                        appointmentDateTime.after(currentDate)
+                    ) {
+                        request to appointmentDateTime
+                    } else {
+                        null
+                    }
+                } catch (e: Exception) {
+                    null
+                }
+            }
+            .minByOrNull { it.second }
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)
+    ) {
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF15171C)
+            )
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "AUTO",
+                                    color = Color.White,
+                                    fontSize = 30.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    letterSpacing = 1.sp
+                                )
+                                Text(
+                                    text = "LUX",
+                                    color = Color(0xFFE32636),
+                                    fontSize = 30.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    letterSpacing = 1.sp
+                                )
+                            }
+
+                            Text(
+                                text = "PREMIUM AUTOMOTIVE",
+                                color = Color(0xFFE32636),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 2.sp
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    Color(0xFFE32636),
+                                    RoundedCornerShape(10.dp)
+                                )
+                                .padding(horizontal = 13.dp, vertical = 9.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "AL",
+                                color = Color.White,
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(3.dp)
+                            .background(
+                                Color(0xFFE32636),
+                                RoundedCornerShape(4.dp)
+                            )
+                    )
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    Text(
+                        text = "Tu próxima experiencia comienza aquí.",
+                        color = Color.White,
+                        fontSize = 21.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        text = "Descubre, reserva y disfruta de la exclusividad.",
+                        color = Color(0xFFB8BEC7),
+                        fontSize = 13.sp
+                    )
+
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Tarjeta de pruebas de manejo
+            Card(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFF15171C)
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "PRUEBAS DE MANEJO",
+                        color = Color(0xFFB8BEC7),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        text = testDriveRequests.size.toString(),
+                        color = Color.White,
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+
+                    Text(
+                        text = "Solicitudes registradas",
+                        color = Color(0xFF858B95),
+                        fontSize = 11.sp
+                    )
+                }
+            }
+
+            // Tarjeta de favoritos
+            Card(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFF15171C)
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "MIS FAVORITOS",
+                        color = Color(0xFFB8BEC7),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        text = favorites.size.toString(),
+                        color = Color(0xFFE32636),
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+
+                    Text(
+                        text = "Vehículos guardados",
+                        color = Color(0xFF858B95),
+                        fontSize = 11.sp
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(15.dp))
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF15171C)
+            )
+        ) {
+            if (nextTestDrive != null) {
+                val (request, appointmentDateTime) = nextTestDrive
+                val vehicle = vehicles.find { it.id == request.vehicleId }
+
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "TU PRÓXIMA EXPERIENCIA",
+                        color = Color(0xFFB8BEC7),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+
+                    Text(
+                        text = "PRÓXIMA",
+                        color = Color.White,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .background(
+                                Color(0xFFE32636),
+                                RoundedCornerShape(6.dp)
+                            )
+                            .padding(horizontal = 9.dp, vertical = 5.dp)
+                    )
+
+                    Text(
+                        text = if (vehicle != null) {
+                            "${vehicle.brand} ${vehicle.model}"
+                        } else {
+                            "Vehículo seleccionado"
+                        },
+                        color = Color.White,
+                        fontSize = 21.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Divider(color = Color(0xFF383A40))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(
+                                "FECHA",
+                                color = Color(0xFF858B95),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                request.appointmentDate,
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+
+                        Column {
+                            Text(
+                                "HORA",
+                                color = Color(0xFF858B95),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                request.appointmentTime,
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "Solicitante: ${request.customerName}",
+                        color = Color(0xFFB8BEC7),
+                        fontSize = 12.sp
+                    )
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(22.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "SIN AGENDAMIENTOS",
+                        color = Color(0xFFE32636),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.5.sp
+                    )
+
+                    Text(
+                        text = "No tienes pruebas de manejo programadas",
+                        color = Color.White,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        text = "Agenda una experiencia y descubre tu próximo vehículo.",
+                        color = Color(0xFFB8BEC7),
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(15.dp))
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onMyTestDrives() }
+                .border(
+                    1.dp,
+                    Color(0xFF39313A),
+                    RoundedCornerShape(22.dp)
+                ),
+            shape = RoundedCornerShape(22.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF17171D)
+            ),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 8.dp
+            )
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                Color(0xFF24212A),
+                                Color(0xFF15161B),
+                                Color(0xFF1D171C)
+                            )
+                        )
+                    )
+                    .padding(20.dp)
+            ) {
+                Column {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(5.dp, 42.dp)
+                                .background(
+                                    Color(0xFFE32636),
+                                    RoundedCornerShape(5.dp)
+                                )
+                        )
+
+                        Spacer(Modifier.width(14.dp))
+
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                "GESTIÓN DE CITAS",
+                                color = Color(0xFFE32636),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.8.sp
+                            )
+
+                            Spacer(Modifier.height(5.dp))
+
+                            Text(
+                                "Mis solicitudes",
+                                color = Color.White,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(58.dp)
+                                .background(
+                                    Color(0xFFE32636).copy(alpha = 0.15f),
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "${testDriveRequests.size}",
+                                color = Color(0xFFFF4655),
+                                fontSize = 25.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(18.dp))
+
+                    Divider(
+                        color = Color(0xFF39333D),
+                        thickness = 1.dp
+                    )
+
+                    Spacer(Modifier.height(16.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                "Pruebas de manejo registradas",
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+
+                            Spacer(Modifier.height(5.dp))
+
+                            Text(
+                                "Consulta, modifica o cancela tus citas.",
+                                color = Color(0xFFB8BEC7),
+                                fontSize = 12.sp
+                            )
+                        }
+
+                        Spacer(Modifier.width(12.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .background(
+                                    Color(0xFFE32636),
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "→",
+                                color = Color.White,
+                                fontSize = 29.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // MI GARAJE
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    // Aquí conectaremos la navegación a Favoritos
+                },
+            shape = RoundedCornerShape(22.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF17171D)
+            ),
+            border = BorderStroke(
+                1.dp,
+                Color(0xFF39313A)
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "MI GARAJE",
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        )
+
+                        Spacer(Modifier.height(5.dp))
+
+                        Text(
+                            "Tu colección personal AutoLux",
+                            color = Color(0xFFB8BEC7),
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    Text(
+                        text = "🚘",
+                        fontSize = 32.sp
+                    )
+                }
+
+                Spacer(Modifier.height(18.dp))
+
+                Text(
+                    "${favorites.size} vehículos guardados",
+                    color = Color(0xFFE32636),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+
+                Spacer(Modifier.height(14.dp))
+
+                val favoriteVehicles = vehicles.filter {
+                    it.id in favorites
+                }.take(2)
+
+                if (favoriteVehicles.isEmpty()) {
+                    Text(
+                        text = "Aún no tienes vehículos en tu garaje.",
+                        color = Color(0xFFB8BEC7),
+                        fontSize = 13.sp
+                    )
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        favoriteVehicles.forEach { vehicle ->
+
+                            val vehicleImage = when (vehicle.id) {
+                                1 -> R.drawable.mercedes_benz_clase_c_sedan
+                                2 -> R.drawable.bwe_serie_5_sedan
+                                3 -> R.drawable.bmw_x5_suv
+                                4 -> R.drawable.porsche_macan
+                                5 -> R.drawable.range_rover_evoque_suv
+                                6 -> R.drawable.porshe_911_carrera
+                                7 -> R.drawable.audi_r8
+                                8 -> R.drawable.mercedes_amg_gt
+                                9 -> R.drawable.lexus_lc_coupe
+                                10 -> R.drawable.bentley_continental_gt__coupe
+                                else -> null
+                            }
+
+                            Card(
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = Color(0xFF22232A)
+                                )
+                            ) {
+                                Column {
+                                    if (vehicleImage != null) {
+                                        Image(
+                                            painter = painterResource(id = vehicleImage),
+                                            contentDescription = "${vehicle.brand} ${vehicle.model}",
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(215.dp),
+                                            contentScale = ContentScale.Fit
+                                        )
+                                    }
+
+                                    Column(
+                                        modifier = Modifier.padding(10.dp)
+                                    ) {
+                                        Text(
+                                            "${vehicle.brand} ${vehicle.model}",
+                                            color = Color.White,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 2
+                                        )
+
+                                        Spacer(Modifier.height(4.dp))
+
+                                        Text(
+                                            "Año ${vehicle.year}",
+                                            color = Color(0xFFB8BEC7),
+                                            fontSize = 11.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                Divider(color = Color(0xFF39333D))
+
+                Spacer(Modifier.height(14.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            onFavorites()
+                        },
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "EXPLORAR MIS FAVORITOS",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
+
+                    Spacer(Modifier.width(10.dp))
+
+                    Text(
+                        text = "➜",
+                        color = Color(0xFFE32636),
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(Modifier.height(14.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                }
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
+        Text("AUTOLUX • CONCESIONARIO PREMIUM",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary)
+    }
+}
+
+@Composable
+fun MyTestDrivesScreen(
+    testDriveRequests: List<TestDriveEntity>,
+    vehicles: List<Vehicle>,
+    testDriveViewModel: TestDriveViewModel,
+    onBack: () -> Unit
 ) {
 
     var requestToEdit by remember {
@@ -911,6 +1755,12 @@ fun ProfileScreen(
         mutableStateOf(false)
     }
 
+    var requestToDelete by remember {
+        mutableStateOf<TestDriveEntity?>(null)
+    }
+
+
+    // Horarios disponibles según la fecha seleccionada
     val editAvailableTimes = remember(editDateMillis) {
         val calendar = java.util.Calendar.getInstance(
             java.util.TimeZone.getTimeZone("UTC")
@@ -932,10 +1782,7 @@ fun ProfileScreen(
         }
     }
 
-    var requestToDelete by remember {
-        mutableStateOf<TestDriveEntity?>(null)
-    }
-
+    // Horarios que ya están reservados
     val editReservedTimes = testDriveRequests
         .filter {
             it.appointmentDate == editDate &&
@@ -944,292 +1791,259 @@ fun ProfileScreen(
         .map { it.appointmentTime }
         .toSet()
 
+
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0D0F13))
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp)
     ) {
-        Text("Bienvenido a AutoLux", style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(8.dp))
+        TextButton(
+            onClick = {
+                onBack()
+            }
+        ) {
+            Text(
+                text = "←",
+                color = Color(0xFFE32636),
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(Modifier.width(8.dp))
+
+            Text(
+                text = "VOLVER AL PERFIL",
+                color = Color.White,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp
+            )
+        }
 
         Text(
-            "Tu experiencia premium comienza aquí.",
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+            text = "MIS SOLICITUDES",
+            color = Color.White,
+            fontSize = 26.sp,
+            fontWeight = FontWeight.ExtraBold
         )
 
-        Spacer(Modifier.height(20.dp))
+        Text(
+            text = "Administra tus pruebas de manejo",
+            color = Color(0xFFB8BEC7),
+            fontSize = 13.sp
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            "Mis solicitudes de prueba de manejo",
-            style = MaterialTheme.typography.titleLarge,
+            text = "${testDriveRequests.size} solicitudes registradas",
+            color = Color(0xFFE32636),
+            fontSize = 12.sp,
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         if (testDriveRequests.isEmpty()) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp)
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFF15171C)
+                )
             ) {
-                Column(Modifier.padding(20.dp)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Text(
-                        "No tienes solicitudes registradas todavía.",
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        text = "No tienes solicitudes registradas",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Cuando agendes una prueba de manejo, aparecerá aquí.",
+                        color = Color(0xFFB8BEC7),
+                        fontSize = 12.sp
                     )
                 }
             }
         } else {
             testDriveRequests.forEach { request ->
+                val requestedVehicle = vehicles.firstOrNull {
+                    it.id == request.vehicleId
+                }
+
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp)
-                ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text(
-                            "Solicitud de prueba de manejo",
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text("Cliente: ${request.customerName}")
-                        Text("Teléfono: ${request.customerPhone}")
-                        Text("Correo: ${request.customerEmail}")
-                        val requestedVehicle = vehicles.firstOrNull { it.id == request.vehicleId }
-
-                        Text(
-                            "Vehículo: ${requestedVehicle?.brand ?: "Desconocido"} ${requestedVehicle?.model ?: ""} (${requestedVehicle?.year ?: ""})",
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text("Fecha: ${request.appointmentDate}")
-                        Text("Hora: ${request.appointmentTime}")
-                    }
-                }
-                Spacer(Modifier.height(12.dp))
-                Spacer(Modifier.height(12.dp))
-
-                OutlinedButton(
-                    onClick = {
-                        requestToEdit = request
-
-                        editName = request.customerName
-                        editPhone = request.customerPhone
-                        editEmail = request.customerEmail
-
-                        editDate = request.appointmentDate
-                        editTime = request.appointmentTime
-                        editSelectedTime = request.appointmentTime
-
-                        editDateMillis = try {
-                            java.text.SimpleDateFormat(
-                                "dd/MM/yyyy",
-                                Locale.getDefault()
-                            ).apply {
-                                timeZone = java.util.TimeZone.getTimeZone("UTC")
-                            }.parse(request.appointmentDate)?.time
-                        } catch (e: Exception) {
-                            null
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("EDITAR SOLICITUD")
-                }
-
-                Button(
-                    onClick = {
-                        requestToDelete = request
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFF15171C)
                     )
                 ) {
-                    Text("CANCELAR SOLICITUD")
-                }
-            }
-        }
+                    Column(
+                        modifier = Modifier.padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "PRUEBA DE MANEJO",
+                                color = Color(0xFFE32636),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            )
 
-        Spacer(Modifier.height(24.dp))
-
-        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) {
-            Column(Modifier.padding(20.dp)) {
-                Text("Prueba de manejo", style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(8.dp))
-                Text("Agenda una experiencia para conocer tu próximo vehículo.")
-                Spacer(Modifier.height(14.dp))
-                Button(onClick = onAppointment, modifier = Modifier.fillMaxWidth()) {
-                    Text("AGENDAR PRUEBA")
-                }
-            }
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) {
-            Column(Modifier.padding(20.dp)) {
-                Text("Financiación", style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(8.dp))
-                Text("Calcula una cuota mensual estimada para tu vehículo.")
-                Spacer(Modifier.height(14.dp))
-                Button(onClick = onFinance, modifier = Modifier.fillMaxWidth()) {
-                    Text("SIMULAR FINANCIACIÓN")
-                }
-            }
-        }
-
-        Spacer(Modifier.height(24.dp))
-        Text("AUTOLUX • CONCESIONARIO PREMIUM",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary)
-    }
-
-    if (requestToDelete != null) {
-        AlertDialog(
-            onDismissRequest = {
-                requestToDelete = null
-            },
-            title = {
-                Text("Cancelar solicitud")
-            },
-            text = {
-                Text(
-                    "¿Estás seguro de que deseas cancelar esta solicitud de prueba de manejo?"
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        requestToDelete?.let { request ->
-                            testDriveViewModel.deleteTestDrive(request.id)
+                            Text(
+                                text = "#${request.id}",
+                                color = Color(0xFF858B95),
+                                fontSize = 11.sp
+                            )
                         }
-                        requestToDelete = null
-                    }
-                ) {
-                    Text("SÍ, CANCELAR")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        requestToDelete = null
-                    }
-                ) {
-                    Text("VOLVER")
-                }
-            }
-        )
-    }
 
-
-    if (showEditDatePicker) {
-        key(editDateMillis) {
-            val editDatePickerState = rememberDatePickerState(
-                initialSelectedDateMillis = editDateMillis,
-                selectableDates = object : SelectableDates {
-
-                    override fun isSelectableDate(
-                        utcTimeMillis: Long
-                    ): Boolean {
-                        val utcTimeZone =
-                            java.util.TimeZone.getTimeZone("UTC")
-
-                        val calendar =
-                            java.util.Calendar.getInstance(utcTimeZone)
-
-                        calendar.timeInMillis = utcTimeMillis
-
-                        val selectedDay = calendar.get(
-                            java.util.Calendar.DAY_OF_WEEK
+                        Text(
+                            text = "${requestedVehicle?.brand ?: "Desconocido"} ${requestedVehicle?.model ?: ""}",
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
                         )
 
-                        val localToday =
-                            java.util.Calendar.getInstance()
+                        if (requestedVehicle != null) {
+                            Text(
+                                text = "${requestedVehicle.year} • ${requestedVehicle.category}",
+                                color = Color(0xFFB8BEC7),
+                                fontSize = 12.sp
+                            )
+                        }
 
-                        val todayUtc =
-                            java.util.Calendar.getInstance(utcTimeZone).apply {
-                                set(
-                                    java.util.Calendar.YEAR,
-                                    localToday.get(java.util.Calendar.YEAR)
+                        Divider(color = Color(0xFF383A40))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column {
+                                Text(
+                                    "FECHA",
+                                    color = Color(0xFF858B95),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
-                                set(
-                                    java.util.Calendar.MONTH,
-                                    localToday.get(java.util.Calendar.MONTH)
+                                Text(
+                                    request.appointmentDate,
+                                    color = Color.White,
+                                    fontSize = 15.sp
                                 )
-                                set(
-                                    java.util.Calendar.DAY_OF_MONTH,
-                                    localToday.get(java.util.Calendar.DAY_OF_MONTH)
-                                )
-                                set(java.util.Calendar.HOUR_OF_DAY, 0)
-                                set(java.util.Calendar.MINUTE, 0)
-                                set(java.util.Calendar.SECOND, 0)
-                                set(java.util.Calendar.MILLISECOND, 0)
                             }
 
-                        val year = calendar.get(java.util.Calendar.YEAR)
-                        val month = calendar.get(java.util.Calendar.MONTH)
-                        val day = calendar.get(
-                            java.util.Calendar.DAY_OF_MONTH
+                            Column {
+                                Text(
+                                    "HORA",
+                                    color = Color(0xFF858B95),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    request.appointmentTime,
+                                    color = Color.White,
+                                    fontSize = 15.sp
+                                )
+                            }
+                        }
+
+                        Divider(color = Color(0xFF383A40))
+
+                        Text(
+                            text = "INFORMACIÓN DEL CLIENTE",
+                            color = Color(0xFFB8BEC7),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
                         )
 
-                        return utcTimeMillis >= todayUtc.timeInMillis &&
-                                selectedDay != java.util.Calendar.SUNDAY &&
-                                !isColombianHoliday(year, month, day)
+                        Text(
+                            "Cliente: ${request.customerName}",
+                            color = Color.White,
+                            fontSize = 13.sp
+                        )
+
+                        Text(
+                            "Teléfono: ${request.customerPhone}",
+                            color = Color(0xFFB8BEC7),
+                            fontSize = 12.sp
+                        )
+
+                        Text(
+                            "Correo: ${request.customerEmail}",
+                            color = Color(0xFFB8BEC7),
+                            fontSize = 12.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        OutlinedButton(
+                            onClick = {
+                                requestToEdit = request
+                                editName = request.customerName
+                                editPhone = request.customerPhone
+                                editEmail = request.customerEmail
+                                editDate = request.appointmentDate
+                                editTime = request.appointmentTime
+                                editSelectedTime = request.appointmentTime
+
+                                editDateMillis = try {
+                                    java.text.SimpleDateFormat(
+                                        "dd/MM/yyyy",
+                                        Locale.getDefault()
+                                    ).apply {
+                                        timeZone = java.util.TimeZone.getTimeZone("UTC")
+                                    }.parse(request.appointmentDate)?.time
+                                } catch (e: Exception) {
+                                    null
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("EDITAR SOLICITUD")
+                        }
+
+                        Button(
+                            onClick = {
+                                requestToDelete = request
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFE32636)
+                            )
+                        ) {
+                            Text("CANCELAR SOLICITUD")
+                        }
                     }
                 }
-            )
 
-            DatePickerDialog(
-                onDismissRequest = {
-                    showEditDatePicker = false
-                },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            editDateMillis =
-                                editDatePickerState.selectedDateMillis
-
-                            editDate = editDateMillis?.let {
-                                java.text.SimpleDateFormat(
-                                    "dd/MM/yyyy",
-                                    Locale.getDefault()
-                                ).apply {
-                                    timeZone =
-                                        java.util.TimeZone.getTimeZone("UTC")
-                                }.format(java.util.Date(it))
-                            } ?: ""
-
-                            editTime = ""
-                            editSelectedTime = ""
-                            showEditDatePicker = false
-                        }
-                    ) {
-                        Text("Aceptar")
-                    }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = {
-                            showEditDatePicker = false
-                        }
-                    ) {
-                        Text("Cancelar")
-                    }
-                }
-            ) {
-                DatePicker(
-                    state = editDatePickerState,
-                    title = {
-                        Text("Selecciona la nueva fecha")
-                    }
-                )
+                Spacer(modifier = Modifier.height(14.dp))
             }
         }
     }
 
-
     if (requestToEdit != null) {
+
+        Text(
+            text = "ESTADO DE EDICIÓN ACTIVADO",
+            color = Color.Red,
+            fontSize = 18.sp
+        )
+
         AlertDialog(
             onDismissRequest = {
                 requestToEdit = null
@@ -1399,6 +2213,148 @@ fun ProfileScreen(
                 }
             }
         )
+    }
+
+    if (requestToDelete != null) {
+        AlertDialog(
+            onDismissRequest = {
+                requestToDelete = null
+            },
+            title = {
+                Text("Cancelar solicitud")
+            },
+            text = {
+                Text(
+                    "¿Estás seguro de que deseas cancelar esta solicitud de prueba de manejo?"
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        requestToDelete?.let { request ->
+                            testDriveViewModel.deleteTestDrive(request.id)
+                        }
+                        requestToDelete = null
+                    }
+                ) {
+                    Text("SÍ, CANCELAR")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        requestToDelete = null
+                    }
+                ) {
+                    Text("VOLVER")
+                }
+            }
+        )
+    }
+
+    if (showEditDatePicker) {
+        key(editDateMillis) {
+            val editDatePickerState = rememberDatePickerState(
+                initialSelectedDateMillis = editDateMillis,
+                selectableDates = object : SelectableDates {
+
+                    override fun isSelectableDate(
+                        utcTimeMillis: Long
+                    ): Boolean {
+                        val utcTimeZone =
+                            java.util.TimeZone.getTimeZone("UTC")
+
+                        val calendar =
+                            java.util.Calendar.getInstance(utcTimeZone)
+
+                        calendar.timeInMillis = utcTimeMillis
+
+                        val selectedDay = calendar.get(
+                            java.util.Calendar.DAY_OF_WEEK
+                        )
+
+                        val localToday =
+                            java.util.Calendar.getInstance()
+
+                        val todayUtc =
+                            java.util.Calendar.getInstance(utcTimeZone).apply {
+                                set(
+                                    java.util.Calendar.YEAR,
+                                    localToday.get(java.util.Calendar.YEAR)
+                                )
+                                set(
+                                    java.util.Calendar.MONTH,
+                                    localToday.get(java.util.Calendar.MONTH)
+                                )
+                                set(
+                                    java.util.Calendar.DAY_OF_MONTH,
+                                    localToday.get(java.util.Calendar.DAY_OF_MONTH)
+                                )
+                                set(java.util.Calendar.HOUR_OF_DAY, 0)
+                                set(java.util.Calendar.MINUTE, 0)
+                                set(java.util.Calendar.SECOND, 0)
+                                set(java.util.Calendar.MILLISECOND, 0)
+                            }
+
+                        val year = calendar.get(java.util.Calendar.YEAR)
+                        val month = calendar.get(java.util.Calendar.MONTH)
+                        val day = calendar.get(
+                            java.util.Calendar.DAY_OF_MONTH
+                        )
+
+                        return utcTimeMillis >= todayUtc.timeInMillis &&
+                                selectedDay != java.util.Calendar.SUNDAY &&
+                                !isColombianHoliday(year, month, day)
+                    }
+                }
+            )
+
+            DatePickerDialog(
+                onDismissRequest = {
+                    showEditDatePicker = false
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            editDateMillis =
+                                editDatePickerState.selectedDateMillis
+
+                            editDate = editDateMillis?.let {
+                                java.text.SimpleDateFormat(
+                                    "dd/MM/yyyy",
+                                    Locale.getDefault()
+                                ).apply {
+                                    timeZone =
+                                        java.util.TimeZone.getTimeZone("UTC")
+                                }.format(java.util.Date(it))
+                            } ?: ""
+
+                            editTime = ""
+                            editSelectedTime = ""
+                            showEditDatePicker = false
+                        }
+                    ) {
+                        Text("Aceptar")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showEditDatePicker = false
+                        }
+                    ) {
+                        Text("Cancelar")
+                    }
+                }
+            ) {
+                DatePicker(
+                    state = editDatePickerState,
+                    title = {
+                        Text("Selecciona la nueva fecha")
+                    }
+                )
+            }
+        }
     }
 
 }
@@ -1672,7 +2628,9 @@ fun AppointmentScreen(vehicle: Vehicle, testDriveViewModel: TestDriveViewModel, 
             DatePicker(
                 state = datePickerState,
                 title = {
-                    Text("Selecciona la fecha de tu prueba")
+                    Text("Selecciona la fecha de tu prueba",
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
                 }
             )
         }
@@ -1885,18 +2843,42 @@ fun AppointmentScreen(vehicle: Vehicle, testDriveViewModel: TestDriveViewModel, 
             Text("REGISTRAR SOLICITUD")
         }
 
+
         if (confirmation) {
             Spacer(Modifier.height(16.dp))
-            Card {
-                Column(Modifier.padding(16.dp)) {
-                    Text("Solicitud registrada",
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(6.dp))
-                    Text("La solicitud para el ${vehicle.brand} ${vehicle.model} quedó registrada en esta sesión. Esta demostración no envía los datos a un concesionario.")
+
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth(0.80f),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            "Solicitud registrada",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Spacer(Modifier.height(6.dp))
+
+                        Text(
+                            "La solicitud para el ${vehicle.brand} ${vehicle.model} fue registrada exitosamente.",
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
         }
+
     }
 
     if (showValidationDialog) {
