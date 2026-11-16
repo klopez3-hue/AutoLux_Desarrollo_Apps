@@ -44,6 +44,17 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.SelectableDates
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.key
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.rememberDatePickerState
+
 
 // ============================================================
 // MODELO Y RUTAS
@@ -246,8 +257,10 @@ fun AutoLuxApp(factory: AutoLuxViewModelFactory) {
                 ProfileScreen(
                     testDriveRequests = testDriveRequests,
                     vehicles = vehicles,
+                    testDriveViewModel = testDriveViewModel,
                     onAppointment = { navController.navigate(Routes.APPOINTMENT) },
                     onFinance = { navController.navigate(Routes.FINANCE) }
+
                 )
             }
 
@@ -875,9 +888,62 @@ fun FavoritesScreen(
 fun ProfileScreen(
     testDriveRequests: List<TestDriveEntity>,
     vehicles: List<Vehicle>,
+    testDriveViewModel: TestDriveViewModel,
     onAppointment: () -> Unit,
     onFinance: () -> Unit
 ) {
+
+    var requestToEdit by remember {
+        mutableStateOf<TestDriveEntity?>(null)
+    }
+
+    var editName by remember { mutableStateOf("") }
+    var editPhone by remember { mutableStateOf("") }
+    var editEmail by remember { mutableStateOf("") }
+
+    var editDate by remember { mutableStateOf("") }
+    var editDateMillis by remember { mutableStateOf<Long?>(null) }
+
+    var editTime by remember { mutableStateOf("") }
+    var editSelectedTime by remember { mutableStateOf("") }
+
+    var showEditDatePicker by remember {
+        mutableStateOf(false)
+    }
+
+    val editAvailableTimes = remember(editDateMillis) {
+        val calendar = java.util.Calendar.getInstance(
+            java.util.TimeZone.getTimeZone("UTC")
+        ).apply {
+            timeInMillis = editDateMillis ?: System.currentTimeMillis()
+        }
+
+        val dayOfWeek = calendar.get(java.util.Calendar.DAY_OF_WEEK)
+
+        val endHour = if (
+            dayOfWeek == java.util.Calendar.SATURDAY
+        ) 12 else 17
+
+        buildList {
+            for (hour in 8 until endHour) {
+                add(String.format(Locale.getDefault(), "%02d:00", hour))
+                add(String.format(Locale.getDefault(), "%02d:30", hour))
+            }
+        }
+    }
+
+    var requestToDelete by remember {
+        mutableStateOf<TestDriveEntity?>(null)
+    }
+
+    val editReservedTimes = testDriveRequests
+        .filter {
+            it.appointmentDate == editDate &&
+                    it.id != requestToEdit?.id
+        }
+        .map { it.appointmentTime }
+        .toSet()
+
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)
     ) {
@@ -939,6 +1005,47 @@ fun ProfileScreen(
                     }
                 }
                 Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(12.dp))
+
+                OutlinedButton(
+                    onClick = {
+                        requestToEdit = request
+
+                        editName = request.customerName
+                        editPhone = request.customerPhone
+                        editEmail = request.customerEmail
+
+                        editDate = request.appointmentDate
+                        editTime = request.appointmentTime
+                        editSelectedTime = request.appointmentTime
+
+                        editDateMillis = try {
+                            java.text.SimpleDateFormat(
+                                "dd/MM/yyyy",
+                                Locale.getDefault()
+                            ).apply {
+                                timeZone = java.util.TimeZone.getTimeZone("UTC")
+                            }.parse(request.appointmentDate)?.time
+                        } catch (e: Exception) {
+                            null
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("EDITAR SOLICITUD")
+                }
+
+                Button(
+                    onClick = {
+                        requestToDelete = request
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("CANCELAR SOLICITUD")
+                }
             }
         }
 
@@ -977,6 +1084,323 @@ fun ProfileScreen(
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary)
     }
+
+    if (requestToDelete != null) {
+        AlertDialog(
+            onDismissRequest = {
+                requestToDelete = null
+            },
+            title = {
+                Text("Cancelar solicitud")
+            },
+            text = {
+                Text(
+                    "¿Estás seguro de que deseas cancelar esta solicitud de prueba de manejo?"
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        requestToDelete?.let { request ->
+                            testDriveViewModel.deleteTestDrive(request.id)
+                        }
+                        requestToDelete = null
+                    }
+                ) {
+                    Text("SÍ, CANCELAR")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        requestToDelete = null
+                    }
+                ) {
+                    Text("VOLVER")
+                }
+            }
+        )
+    }
+
+
+    if (showEditDatePicker) {
+        key(editDateMillis) {
+            val editDatePickerState = rememberDatePickerState(
+                initialSelectedDateMillis = editDateMillis,
+                selectableDates = object : SelectableDates {
+
+                    override fun isSelectableDate(
+                        utcTimeMillis: Long
+                    ): Boolean {
+                        val utcTimeZone =
+                            java.util.TimeZone.getTimeZone("UTC")
+
+                        val calendar =
+                            java.util.Calendar.getInstance(utcTimeZone)
+
+                        calendar.timeInMillis = utcTimeMillis
+
+                        val selectedDay = calendar.get(
+                            java.util.Calendar.DAY_OF_WEEK
+                        )
+
+                        val localToday =
+                            java.util.Calendar.getInstance()
+
+                        val todayUtc =
+                            java.util.Calendar.getInstance(utcTimeZone).apply {
+                                set(
+                                    java.util.Calendar.YEAR,
+                                    localToday.get(java.util.Calendar.YEAR)
+                                )
+                                set(
+                                    java.util.Calendar.MONTH,
+                                    localToday.get(java.util.Calendar.MONTH)
+                                )
+                                set(
+                                    java.util.Calendar.DAY_OF_MONTH,
+                                    localToday.get(java.util.Calendar.DAY_OF_MONTH)
+                                )
+                                set(java.util.Calendar.HOUR_OF_DAY, 0)
+                                set(java.util.Calendar.MINUTE, 0)
+                                set(java.util.Calendar.SECOND, 0)
+                                set(java.util.Calendar.MILLISECOND, 0)
+                            }
+
+                        val year = calendar.get(java.util.Calendar.YEAR)
+                        val month = calendar.get(java.util.Calendar.MONTH)
+                        val day = calendar.get(
+                            java.util.Calendar.DAY_OF_MONTH
+                        )
+
+                        return utcTimeMillis >= todayUtc.timeInMillis &&
+                                selectedDay != java.util.Calendar.SUNDAY &&
+                                !isColombianHoliday(year, month, day)
+                    }
+                }
+            )
+
+            DatePickerDialog(
+                onDismissRequest = {
+                    showEditDatePicker = false
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            editDateMillis =
+                                editDatePickerState.selectedDateMillis
+
+                            editDate = editDateMillis?.let {
+                                java.text.SimpleDateFormat(
+                                    "dd/MM/yyyy",
+                                    Locale.getDefault()
+                                ).apply {
+                                    timeZone =
+                                        java.util.TimeZone.getTimeZone("UTC")
+                                }.format(java.util.Date(it))
+                            } ?: ""
+
+                            editTime = ""
+                            editSelectedTime = ""
+                            showEditDatePicker = false
+                        }
+                    ) {
+                        Text("Aceptar")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showEditDatePicker = false
+                        }
+                    ) {
+                        Text("Cancelar")
+                    }
+                }
+            ) {
+                DatePicker(
+                    state = editDatePickerState,
+                    title = {
+                        Text("Selecciona la nueva fecha")
+                    }
+                )
+            }
+        }
+    }
+
+
+    if (requestToEdit != null) {
+        AlertDialog(
+            onDismissRequest = {
+                requestToEdit = null
+            },
+            title = {
+                Text("Editar solicitud")
+            },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = editName,
+                        onValueChange = { editName = it },
+                        label = { Text("Nombre del cliente") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = editPhone,
+                        onValueChange = { newValue ->
+                            if (newValue.length <= 10 && newValue.all { char ->
+                                    char.isDigit()
+                                }) {
+                                editPhone = newValue
+                            }
+                        },
+                        label = { Text("Teléfono") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = editEmail,
+                        onValueChange = { editEmail = it },
+                        label = { Text("Correo electrónico") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = editDate,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Fecha de la prueba") },
+                        trailingIcon = {
+                            TextButton(
+                                onClick = {
+                                    showEditDatePicker = true
+                                }
+                            ) {
+                                Text("📅")
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                showEditDatePicker = true
+                            },
+                        singleLine = true
+                    )
+
+
+                    Spacer(Modifier.height(12.dp))
+
+                    Text(
+                        "Selecciona un horario",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    editAvailableTimes.chunked(2).forEach { rowTimes ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            rowTimes.forEach { slot ->
+                                Button(
+                                    onClick = {
+                                        editSelectedTime = slot
+                                        editTime = slot
+                                    },
+                                    enabled = slot !in editReservedTimes,
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = when {
+                                            slot in editReservedTimes ->
+                                                MaterialTheme.colorScheme.errorContainer
+
+                                            editSelectedTime == slot ->
+                                                MaterialTheme.colorScheme.primary
+
+                                            else ->
+                                                MaterialTheme.colorScheme.surfaceVariant
+                                        }
+                                    )
+                                ) {
+                                    Text(
+                                        if (slot in editReservedTimes) {
+                                            "OCUPADO · $slot"
+                                        } else {
+                                            slot
+                                        }
+                                    )
+                                }
+                            }
+
+                            if (rowTimes.size == 1) {
+                                Spacer(Modifier.weight(1f))
+                            }
+                        }
+                    }
+
+
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val isEmailValid =
+                            android.util.Patterns.EMAIL_ADDRESS
+                                .matcher(editEmail)
+                                .matches()
+
+                        if (
+                            editName.isNotBlank() &&
+                            editPhone.length == 10 &&
+                            editEmail.isNotBlank() &&
+                            isEmailValid &&
+                            editDate.isNotBlank() &&
+                            editTime.isNotBlank() &&
+                            editTime !in editReservedTimes
+                        ) {
+                            requestToEdit?.let { request ->
+                                testDriveViewModel.updateTestDrive(
+                                    request.copy(
+                                        customerName = editName,
+                                        customerPhone = editPhone,
+                                        customerEmail = editEmail,
+                                        appointmentDate = editDate,
+                                        appointmentTime = editTime
+                                    )
+                                )
+                            }
+
+                            requestToEdit = null
+                        }
+                    }
+                ) {
+                    Text("GUARDAR CAMBIOS")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        requestToEdit = null
+                    }
+                ) {
+                    Text("CANCELAR")
+                }
+            }
+        )
+    }
+
 }
 
 
@@ -1289,7 +1713,7 @@ fun AppointmentScreen(vehicle: Vehicle, testDriveViewModel: TestDriveViewModel, 
         OutlinedTextField(
             value = phone,
             onValueChange = { newValue ->
-                if (newValue.all { it.isDigit() }) {
+                if (newValue.length <= 10 && newValue.all { it.isDigit() }) {
                     phone = newValue
                     confirmation = false
                 }
@@ -1433,7 +1857,7 @@ fun AppointmentScreen(vehicle: Vehicle, testDriveViewModel: TestDriveViewModel, 
             onClick = {
                 if (
                     name.isNotBlank() &&
-                    phone.isNotBlank() &&
+                    phone.length == 10 &&
                     isEmailValid &&
                     date.isNotBlank() &&
                     time.isNotBlank()

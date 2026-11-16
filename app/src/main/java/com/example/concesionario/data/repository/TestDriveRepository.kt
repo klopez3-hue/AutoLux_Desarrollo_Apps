@@ -15,6 +15,10 @@ class TestDriveRepository(
         testDriveDao.insertTestDrive(testDrive)
     }
 
+    suspend fun updateTestDrive(testDrive: TestDriveEntity) {
+        testDriveDao.updateTestDrive(testDrive)
+    }
+
     suspend fun getTestDriveById(testDriveId: Int): TestDriveEntity? {
         return testDriveDao.getTestDriveById(testDriveId)
     }

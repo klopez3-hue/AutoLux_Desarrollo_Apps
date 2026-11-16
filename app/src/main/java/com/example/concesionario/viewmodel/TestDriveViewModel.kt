@@ -26,6 +26,12 @@ class TestDriveViewModel(
         }
     }
 
+    fun updateTestDrive(testDrive: TestDriveEntity) {
+        viewModelScope.launch {
+            repository.updateTestDrive(testDrive)
+        }
+    }
+
     fun deleteTestDrive(testDriveId: Int) {
         viewModelScope.launch {
             repository.deleteTestDrive(testDriveId)
