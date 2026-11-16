@@ -575,6 +575,7 @@ fun BrandFeature(title: String, subtitle: String, modifier: Modifier = Modifier)
 }
 
 
+
 @Composable
 fun FeaturedVehicleCard(
     vehicle: Vehicle,
@@ -592,116 +593,133 @@ fun FeaturedVehicleCard(
             containerColor = Color(0xFF17181D)
         )
     ) {
-        Column {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(430.dp)
-                    .clickable(onClick = onDetails)
-            ) {
-                Image(
-                    painter = painterResource(vehicle.image),
-                    contentDescription = "${vehicle.brand} ${vehicle.model}",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
 
-                // Degradado oscuro inferior
+            // Fotografía adaptable al dispositivo
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+
+                val imageHeight = (maxWidth * 0.85f)
+                    .coerceIn(240.dp, 380.dp)
+
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    Color(0x33000000),
-                                    Color(0xEE000000)
-                                ),
-                                startY = 300f
+                        .fillMaxWidth()
+                        .height(imageHeight)
+                        .clickable(onClick = onDetails)
+                ) {
+
+                    Image(
+                        painter = painterResource(vehicle.image),
+                        contentDescription = "${vehicle.brand} ${vehicle.model}",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+
+                    // Degradado inferior
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        Color(0x33000000),
+                                        Color(0xEE000000)
+                                    )
+                                )
                             )
-                        )
-                )
-
-                // Etiqueta DESTACADO
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(12.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = RoundedCornerShape(50)
-                ) {
-                    Text(
-                        "DESTACADO",
-                        modifier = Modifier.padding(
-                            horizontal = 12.dp,
-                            vertical = 7.dp
-                        ),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold
                     )
-                }
 
-                // Favoritos
-                TextButton(
-                    onClick = onFavorite,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(4.dp)
-                ) {
-                    Text(
-                        if (isFavorite) "♥" else "♡",
-                        fontSize = 30.sp,
-                        color = if (isFavorite) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            Color.White
-                        }
-                    )
-                }
-
-                // Información superpuesta
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(20.dp)
-                ) {
-                    Text(
-                        vehicle.brand.uppercase(),
+                    // Etiqueta DESTACADO
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(12.dp),
                         color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold
-                    )
+                        shape = RoundedCornerShape(50)
+                    ) {
+                        Text(
+                            "DESTACADO",
+                            modifier = Modifier.padding(
+                                horizontal = 12.dp,
+                                vertical = 7.dp
+                            ),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
 
-                    Text(
-                        vehicle.model,
-                        color = Color.White,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    // Favoritos
+                    TextButton(
+                        onClick = onFavorite,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(4.dp)
+                    ) {
+                        Text(
+                            if (isFavorite) "♥" else "♡",
+                            fontSize = 30.sp,
+                            color = if (isFavorite) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                Color.White
+                            }
+                        )
+                    }
 
-                    Spacer(Modifier.height(5.dp))
+                    // Información superpuesta
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            vehicle.brand.uppercase(),
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
 
-                    Text(
-                        "${vehicle.year}  •  ${vehicle.category}",
-                        color = Color.White.copy(alpha = 0.85f),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                        Text(
+                            vehicle.model,
+                            color = Color.White,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
 
-                    Spacer(Modifier.height(10.dp))
+                        Spacer(Modifier.height(5.dp))
 
-                    Text(
-                        formatPrice(vehicle.price),
-                        color = Color.White,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
-                    )
+                        Text(
+                            "${vehicle.year} • ${vehicle.category}",
+                            color = Color.White.copy(alpha = 0.85f),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+
+                        Spacer(Modifier.height(10.dp))
+
+                        Text(
+                            formatPrice(vehicle.price),
+                            color = Color.White,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
+                    }
                 }
             }
 
-            // Botones de acción
+            // Botones fuera de la fotografía
             Column(
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
             ) {
                 Button(
                     onClick = onFinance,
@@ -723,7 +741,6 @@ fun FeaturedVehicleCard(
     }
 }
 
-
 @Composable
 fun CategoryImageCard(
     title: String,
@@ -732,26 +749,39 @@ fun CategoryImageCard(
     onClick: () -> Unit
 ) {
     Card(
-        modifier = modifier.height(290.dp).clickable(onClick = onClick),
+        modifier = modifier
+            .aspectRatio(1.8f)
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp)
     ) {
-        Box(Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier.fillMaxSize()
+        ) {
             Image(
                 painter = painterResource(image),
                 contentDescription = title,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
+
             Box(
-                Modifier.fillMaxSize().background(
-                    Brush.verticalGradient(
-                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.86f))
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.86f)
+                            )
+                        )
                     )
-                )
             )
+
             Text(
                 "$title  ›",
-                modifier = Modifier.align(Alignment.BottomStart).padding(12.dp),
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(12.dp),
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleSmall
@@ -759,6 +789,7 @@ fun CategoryImageCard(
         }
     }
 }
+
 
 // ============================================================
 // CATÁLOGO
@@ -848,6 +879,7 @@ fun CatalogScreen(
 // ============================================================
 
 
+
 @Composable
 fun VehicleCard(
     vehicle: Vehicle,
@@ -863,104 +895,125 @@ fun VehicleCard(
             containerColor = Color(0xFF17181D)
         )
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(430.dp)
+        Column(
+            modifier = Modifier.fillMaxWidth()
         ) {
 
-            // Fotografía del vehículo
-            Image(
-                painter = painterResource(vehicle.image),
-                contentDescription = "${vehicle.brand} ${vehicle.model}",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-
-            // Degradado para mejorar la lectura
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Black.copy(alpha = 0.05f),
-                                Color.Black.copy(alpha = 0.15f),
-                                Color.Black.copy(alpha = 0.65f),
-                                Color.Black.copy(alpha = 0.96f)
-                            ),
-                            startY = 0f
-                        )
-                    )
-            )
-
-            // Botón de favoritos
-            TextButton(
-                onClick = onFavorite,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(10.dp)
+            // Fotografía adaptable al ancho disponible
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = if (isFavorite) "♥" else "♡",
-                    fontSize = 32.sp,
-                    color = if (isFavorite) {
-                        Color(0xFFE32636)
-                    } else {
-                        Color.White
+
+                val imageHeight = (maxWidth * 0.72f)
+                    .coerceIn(220.dp, 340.dp)
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(imageHeight)
+                ) {
+
+                    Image(
+                        painter = painterResource(vehicle.image),
+                        contentDescription = "${vehicle.brand} ${vehicle.model}",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+
+                    // Degradado cinematográfico
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Black.copy(alpha = 0.05f),
+                                        Color.Transparent,
+                                        Color.Black.copy(alpha = 0.85f),
+                                        Color.Black.copy(alpha = 0.98f)
+                                    )
+                                )
+                            )
+                    )
+
+                    // Botón de favoritos
+                    TextButton(
+                        onClick = onFavorite,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                    ) {
+                        Text(
+                            text = if (isFavorite) "♥" else "♡",
+                            fontSize = 32.sp,
+                            color = if (isFavorite) {
+                                Color(0xFFE32636)
+                            } else {
+                                Color.White
+                            }
+                        )
                     }
-                )
+
+                    // Información superpuesta
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+
+                        Text(
+                            vehicle.brand.uppercase(),
+                            color = Color(0xFFE94A50),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        )
+
+                        Spacer(Modifier.height(3.dp))
+
+                        Text(
+                            vehicle.model,
+                            color = Color.White,
+                            fontSize = 25.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            maxLines = 1
+                        )
+
+                        Spacer(Modifier.height(4.dp))
+
+                        Text(
+                            "${vehicle.year} • ${vehicle.category}",
+                            color = Color.White.copy(alpha = 0.85f),
+                            fontSize = 13.sp
+                        )
+
+                        Spacer(Modifier.height(8.dp))
+
+                        Text(
+                            formatPrice(vehicle.price),
+                            color = Color(0xFFE94A50),
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            maxLines = 1
+                        )
+                    }
+                }
             }
 
-            // Información en la parte inferior izquierda
+            // Descripción y acciones
             Column(
                 modifier = Modifier
-                    .align(Alignment.BottomStart)
                     .fillMaxWidth()
-                    .padding(18.dp)
+                    .padding(horizontal = 16.dp, vertical = 14.dp)
             ) {
-
-                Text(
-                    vehicle.brand.uppercase(),
-                    color = Color(0xFFE94A50),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
-                )
-
-                Spacer(Modifier.height(3.dp))
-
-                Text(
-                    vehicle.model,
-                    color = Color.White,
-                    fontSize = 27.sp,
-                    fontWeight = FontWeight.ExtraBold
-                )
-
-                Spacer(Modifier.height(5.dp))
-
-                Text(
-                    "${vehicle.year}  •  ${vehicle.category}",
-                    color = Color.White.copy(alpha = 0.85f),
-                    fontSize = 14.sp
-                )
-
-                Spacer(Modifier.height(10.dp))
-
-                Text(
-                    formatPrice(vehicle.price),
-                    color = Color(0xFFE94A50),
-                    fontSize = 23.sp,
-                    fontWeight = FontWeight.ExtraBold
-                )
-
-                Spacer(Modifier.height(10.dp))
 
                 Text(
                     vehicle.description,
                     color = Color.White,
                     fontSize = 14.sp,
-                    lineHeight = 19.sp
+                    lineHeight = 19.sp,
+                    maxLines = 2
                 )
 
                 Spacer(Modifier.height(14.dp))
@@ -1000,9 +1053,11 @@ fun VehicleCard(
 }
 
 
+
 // ============================================================
 // FAVORITOS
 // ============================================================
+
 
 @Composable
 fun FavoritesScreen(
@@ -1013,47 +1068,85 @@ fun FavoritesScreen(
     onFinance: (Int) -> Unit,
     onCatalog: () -> Unit
 ) {
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
     ) {
-        Text("Mis favoritos", style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(8.dp))
-        Text("Tu selección personal de vehículos.",
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f))
-        Spacer(Modifier.height(20.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 760.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+        ) {
+            Text(
+                "Mis favoritos",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
 
-        if (vehicles.isEmpty()) {
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+            Spacer(Modifier.height(8.dp))
+
+            Text(
+                "Tu selección personal de vehículos.",
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+            )
+
+            Spacer(Modifier.height(20.dp))
+
+            if (vehicles.isEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp)
                 ) {
-                    Text("♡", fontSize = 52.sp, color = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.height(12.dp))
-                    Text("Aún no tienes favoritos",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(8.dp))
-                    Text("Guarda los vehículos que más te gusten.")
-                    Spacer(Modifier.height(16.dp))
-                    Button(onClick = onCatalog) { Text("EXPLORAR CATÁLOGO") }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            "♡",
+                            fontSize = 52.sp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            "Aún no tienes favoritos",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Spacer(Modifier.height(8.dp))
+
+                        Text("Guarda los vehículos que más te gusten.")
+
+                        Spacer(Modifier.height(16.dp))
+
+                        Button(onClick = onCatalog) {
+                            Text("EXPLORAR CATÁLOGO")
+                        }
+                    }
                 }
-            }
-        } else {
-            vehicles.forEach { vehicle ->
-                VehicleCard(
-                    vehicle = vehicle,
-                    isFavorite = vehicle.id in favorites,
-                    onFavorite = { onFavorite(vehicle.id) },
-                    onAppointment = { onAppointment(vehicle.id) },
-                    onFinance = { onFinance(vehicle.id) }
-                )
-                Spacer(Modifier.height(16.dp))
+            } else {
+                vehicles.forEach { vehicle ->
+                    VehicleCard(
+                        vehicle = vehicle,
+                        isFavorite = vehicle.id in favorites,
+                        onFavorite = { onFavorite(vehicle.id) },
+                        onAppointment = { onAppointment(vehicle.id) },
+                        onFinance = { onFinance(vehicle.id) }
+                    )
+
+                    Spacer(Modifier.height(16.dp))
+                }
             }
         }
     }
 }
+
 
 // ============================================================
 // PERFIL
@@ -1102,9 +1195,17 @@ fun ProfileScreen(
             .minByOrNull { it.second }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 760.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp)
+        ) {
 
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -1726,6 +1827,7 @@ fun ProfileScreen(
         Text("AUTOLUX • CONCESIONARIO PREMIUM",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary)
+        }
     }
 }
 
@@ -1791,14 +1893,20 @@ fun MyTestDrivesScreen(
         .map { it.appointmentTime }
         .toSet()
 
-
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0D0F13))
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp)
+            .background(Color(0xFF0D0F13)),
+        contentAlignment = Alignment.TopCenter
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 760.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp)
+        ) {
+
         TextButton(
             onClick = {
                 onBack()
@@ -2034,6 +2142,7 @@ fun MyTestDrivesScreen(
                 Spacer(modifier = Modifier.height(14.dp))
             }
         }
+    }
     }
 
     if (requestToEdit != null) {
@@ -2356,8 +2465,8 @@ fun MyTestDrivesScreen(
             }
         }
     }
-
 }
+
 
 
 fun isColombianHoliday(year: Int, month: Int, day: Int): Boolean {
@@ -2636,249 +2745,262 @@ fun AppointmentScreen(vehicle: Vehicle, testDriveViewModel: TestDriveViewModel, 
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
     ) {
-        TextButton(onClick = onBack) { Text("← Volver") }
-        Text("Prueba de manejo", style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(8.dp))
-        Text("${vehicle.brand} ${vehicle.model} • ${vehicle.year}",
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(8.dp))
-        Text("Completa tus datos para registrar tu solicitud.")
-        Spacer(Modifier.height(20.dp))
-
-        OutlinedTextField(
-            value = name,
-            onValueChange = {
-                name = it
-                confirmation = false
-            },
-            label = { Text("Nombre completo") },
-            trailingIcon = {
-                if (showFieldErrors && name.isBlank()) {
-                    Text("⚠️")
-                }
-            },
-            isError = showFieldErrors && name.isBlank(),
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        Spacer(Modifier.height(12.dp))
-        OutlinedTextField(
-            value = phone,
-            onValueChange = { newValue ->
-                if (newValue.length <= 10 && newValue.all { it.isDigit() }) {
-                    phone = newValue
-                    confirmation = false
-                }
-            },
-            label = { Text("Teléfono de contacto") },
-            trailingIcon = {
-                if (showFieldErrors && phone.isBlank()) {
-                    Text("⚠️")
-                }
-            },
-            isError = showFieldErrors && phone.isBlank(),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Number
-            ),
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-        Spacer(Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = {
-                email = it
-                confirmation = false
-            },
-            label = { Text("Correo electrónico") },
-            trailingIcon = {
-                if (
-                    showFieldErrors &&
-                    (email.isBlank() || !isEmailValid)
-                ) {
-                    Text("⚠️")
-                }
-            },
-            isError = showFieldErrors &&
-                    (email.isBlank() || !isEmailValid),
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-        if (showFieldErrors && email.isNotBlank() && !isEmailValid) {
-            Text(
-                "Correo inválido. Ejemplo: usuario@gmail.com ó usuario@hotmail.com",
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall
-            )
-        }
-        Spacer(Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = selectedDate?.let {
-                java.text.SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                    .format(java.util.Date(it))
-            } ?: "",
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Fecha de la prueba") },
-            placeholder = { Text("Selecciona una fecha") },
-            trailingIcon = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (showFieldErrors && date.isBlank()) {
-                        Text("⚠️")
-                    }
-
-                    TextButton(
-                        onClick = { showDatePicker = true }
-                    ) {
-                        Text("📅")
-                    }
-                }
-            },
-            isError = showFieldErrors && date.isBlank(),
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { showDatePicker = true },
-            singleLine = true
-        )
-        Spacer(Modifier.height(12.dp))
-
-        Text(
-            "Selecciona un horario",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
-
-        if (showFieldErrors && time.isBlank()) {
+                .widthIn(max = 600.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp)
+    ) {
+            TextButton(onClick = onBack) { Text("← Volver") }
             Text(
-                "⚠️ Debes seleccionar un horario",
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall
+                "Prueba de manejo", style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
             )
-        }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "${vehicle.brand} ${vehicle.model} • ${vehicle.year}",
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(Modifier.height(8.dp))
+            Text("Completa tus datos para registrar tu solicitud.")
+            Spacer(Modifier.height(20.dp))
 
-        Spacer(Modifier.height(12.dp))
+            OutlinedTextField(
+                value = name,
+                onValueChange = {
+                    name = it
+                    confirmation = false
+                },
+                label = { Text("Nombre completo") },
+                trailingIcon = {
+                    if (showFieldErrors && name.isBlank()) {
+                        Text("⚠️")
+                    }
+                },
+                isError = showFieldErrors && name.isBlank(),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
 
-        if (selectedDate == null) {
-            Text("Primero selecciona una fecha.")
-        } else {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                availableTimes.chunked(2).forEach { rowTimes ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(
+                value = phone,
+                onValueChange = { newValue ->
+                    if (newValue.length <= 10 && newValue.all { it.isDigit() }) {
+                        phone = newValue
+                        confirmation = false
+                    }
+                },
+                label = { Text("Teléfono de contacto") },
+                trailingIcon = {
+                    if (showFieldErrors && phone.isBlank()) {
+                        Text("⚠️")
+                    }
+                },
+                isError = showFieldErrors && phone.isBlank(),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number
+                ),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            Spacer(Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = email,
+                onValueChange = {
+                    email = it
+                    confirmation = false
+                },
+                label = { Text("Correo electrónico") },
+                trailingIcon = {
+                    if (
+                        showFieldErrors &&
+                        (email.isBlank() || !isEmailValid)
                     ) {
-                        rowTimes.forEach { slot ->
-                            Button(
-                                onClick = {
-                                    selectedTime = slot
-                                    time = slot
-                                    confirmation = false
-                                },
-                                enabled = slot !in reservedTimes,
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = when {
-                                        slot in reservedTimes -> MaterialTheme.colorScheme.errorContainer
-                                        selectedTime == slot -> MaterialTheme.colorScheme.primary
-                                        else -> MaterialTheme.colorScheme.surfaceVariant
-                                    }
-                                )
-                            ) {
-                                Text(if (slot in reservedTimes) "OCUPADO · $slot" else slot
-                                )
+                        Text("⚠️")
+                    }
+                },
+                isError = showFieldErrors &&
+                        (email.isBlank() || !isEmailValid),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            if (showFieldErrors && email.isNotBlank() && !isEmailValid) {
+                Text(
+                    "Correo inválido. Ejemplo: usuario@gmail.com ó usuario@hotmail.com",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = selectedDate?.let {
+                    java.text.SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                        .format(java.util.Date(it))
+                } ?: "",
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Fecha de la prueba") },
+                placeholder = { Text("Selecciona una fecha") },
+                trailingIcon = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (showFieldErrors && date.isBlank()) {
+                            Text("⚠️")
+                        }
+
+                        TextButton(
+                            onClick = { showDatePicker = true }
+                        ) {
+                            Text("📅")
+                        }
+                    }
+                },
+                isError = showFieldErrors && date.isBlank(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showDatePicker = true },
+                singleLine = true
+            )
+            Spacer(Modifier.height(12.dp))
+
+            Text(
+                "Selecciona un horario",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            if (showFieldErrors && time.isBlank()) {
+                Text(
+                    "⚠️ Debes seleccionar un horario",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            if (selectedDate == null) {
+                Text("Primero selecciona una fecha.")
+            } else {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    availableTimes.chunked(2).forEach { rowTimes ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            rowTimes.forEach { slot ->
+                                Button(
+                                    onClick = {
+                                        selectedTime = slot
+                                        time = slot
+                                        confirmation = false
+                                    },
+                                    enabled = slot !in reservedTimes,
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = when {
+                                            slot in reservedTimes -> MaterialTheme.colorScheme.errorContainer
+                                            selectedTime == slot -> MaterialTheme.colorScheme.primary
+                                            else -> MaterialTheme.colorScheme.surfaceVariant
+                                        }
+                                    )
+                                ) {
+                                    Text(
+                                        if (slot in reservedTimes) "OCUPADO · $slot" else slot
+                                    )
+                                }
+                            }
+
+                            if (rowTimes.size == 1) {
+                                Spacer(Modifier.weight(1f))
                             }
                         }
+                    }
+                }
+            }
 
-                        if (rowTimes.size == 1) {
-                            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.height(20.dp))
+
+            Button(
+                onClick = {
+                    if (
+                        name.isNotBlank() &&
+                        phone.length == 10 &&
+                        isEmailValid &&
+                        date.isNotBlank() &&
+                        time.isNotBlank()
+                    ) {
+                        testDriveViewModel.addTestDrive(
+                            TestDriveEntity(
+                                vehicleId = vehicle.id,
+                                customerName = name,
+                                customerPhone = phone,
+                                customerEmail = email,
+                                appointmentDate = date,
+                                appointmentTime = time
+                            )
+                        )
+                        showFieldErrors = false
+                        confirmation = true
+                    } else {
+                        confirmation = false
+                        showValidationDialog = true
+                        showFieldErrors = true
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(52.dp)
+            ) {
+                Text("REGISTRAR SOLICITUD")
+            }
+
+
+            if (confirmation) {
+                Spacer(Modifier.height(16.dp))
+
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth(0.80f),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                "Solicitud registrada",
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center
+                            )
+
+                            Spacer(Modifier.height(6.dp))
+
+                            Text(
+                                "La solicitud para el ${vehicle.brand} ${vehicle.model} fue registrada exitosamente.",
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center
+                            )
                         }
                     }
                 }
             }
         }
-
-        Spacer(Modifier.height(20.dp))
-
-        Button(
-            onClick = {
-                if (
-                    name.isNotBlank() &&
-                    phone.length == 10 &&
-                    isEmailValid &&
-                    date.isNotBlank() &&
-                    time.isNotBlank()
-                ) {
-                    testDriveViewModel.addTestDrive(
-                        TestDriveEntity(
-                            vehicleId = vehicle.id,
-                            customerName = name,
-                            customerPhone = phone,
-                            customerEmail = email,
-                            appointmentDate = date,
-                            appointmentTime = time
-                        )
-                    )
-                    showFieldErrors = false
-                    confirmation = true
-                } else {
-                    confirmation = false
-                    showValidationDialog = true
-                    showFieldErrors = true
-                }
-            },
-            modifier = Modifier.fillMaxWidth().height(52.dp)
-        ) {
-            Text("REGISTRAR SOLICITUD")
-        }
-
-
-        if (confirmation) {
-            Spacer(Modifier.height(16.dp))
-
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth(0.80f),
-                    shape = RoundedCornerShape(14.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            "Solicitud registrada",
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center
-                        )
-
-                        Spacer(Modifier.height(6.dp))
-
-                        Text(
-                            "La solicitud para el ${vehicle.brand} ${vehicle.model} fue registrada exitosamente.",
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-            }
-        }
-
     }
 
     if (showValidationDialog) {
@@ -2932,9 +3054,17 @@ fun FinanceScreen(vehicle: Vehicle, onBack: () -> Unit) {
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 600.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp)
+        ) {
         TextButton(onClick = onBack) { Text("← Volver") }
         Text("Simulador de financiación", style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold)
@@ -3000,6 +3130,7 @@ fun FinanceScreen(vehicle: Vehicle, onBack: () -> Unit) {
                 }
             }
         }
+    }
     }
 }
 
